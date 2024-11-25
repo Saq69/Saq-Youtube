@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saq Video Player</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        
+        #menu {
+            display: none;
+            position: fixed;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        #menu input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            background: #fff;
+            color: #333;
+        }
+        #menu button {
+            margin: 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #5a67d8;
+            color: white;
+            transition: background 0.3s;
+        }
+        #menu button:hover {
+            background: #4c51bf;
+        }
+        #menu .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #e53e3e;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #recommendedVideos {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-top: 10px;
+        }
+        #recommendedVideos h3 {
+            margin: 10px 0;
+            font-size: 18px;
+            color: #f6e05e;
+        }
+        #recommendedVideos button {
+            background: #2d3748;
+            color: white;
+            margin: 5px 0;
+            padding: 10px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.3s;
+        }
+        #recommendedVideos button:hover {
+            background: #4a5568;
+        }
+        #videoFrame {
+            position: fixed;
+            bottom: 10%;
+            right: 10%;
+            width: 400px;
+            height: 225px;
+            display: none;
+            z-index: 1000;
+            border: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <span class="close" onclick="closeMenu()">✖</span>
+        <input id="urlInput" type="text" placeholder="Put URL here..." />
+        <div>
+            <button onclick="playVideo()">تشغيل</button>
+            <button onclick="stopVideo()">إيقاف</button>
+            <button onclick="hideVideo()">إخفاء</button>
+        </div>
+        <label for="volume">🔊</label>
+        <input type="range" id="volume" min="0" max="100" value="50" oninput="setVolume(this.value)">
+        
+        <div id="recommendedVideos">
+            <h3>Recommended Videos</h3>
+        </div>
+    </div>
+    <iframe id="videoFrame" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+    <script>
+        window.addEventListener("message", function(event) {
+            const data = event.data;
+            const menu = document.getElementById("menu");
+            const iframe = document.getElementById("videoFrame");
+            const recommendedVideos = document.getElementById("recommendedVideos");
+
+            if (data.action === "openMenu") {
+                menu.style.display = "block";
+                recommendedVideos.innerHTML = "<h3>Recommended Videos</h3>";
+                data.videos.forEach(video => {
+                    const button = document.createElement("button");
+                    button.textContent = video.label;
+                    button.onclick = () => playRecommendedVideo(video.url);
+                    recommendedVideos.appendChild(button);
+                });
+            } else if (data.action === "play") {
+                iframe.src = data.url + "?autoplay=1";
+                iframe.style.display = "block";
+            } else if (data.action === "stop") {
+                iframe.src = "";
+                iframe.style.display = "none";
+            } else if (data.action === "hide") {
+                iframe.style.display = "none";
+            } else if (data.action === "setVolume") {
+                iframe.contentWindow.postMessage({ event: "command", func: "setVolume", args: [data.volume / 100] }, "*");
+            }
+        });
+
+        function playVideo() {
+            const url = document.getElementById("urlInput").value;
+            fetch(`https://${GetParentResourceName()}/playVideo`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url })
+            });
+        }
+
+        function stopVideo() {
+            fetch(`https://${GetParentResourceName()}/stopVideo`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        function hideVideo() {
+            fetch(`https://${GetParentResourceName()}/hideVideo`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        function closeMenu() {
+            fetch(`https://${GetParentResourceName()}/closeMenu`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            document.getElementById("menu").style.display = "none";
+        }
+
+        function setVolume(volume) {
+            fetch(`https://${GetParentResourceName()}/setVolume`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ volume })
+            });
+        }
+
+        function playRecommendedVideo(url) {
+            fetch(`https://${GetParentResourceName()}/playVideo`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url })
+            });
+        }
+    </script>
+</body>
+</html>
